@@ -64,15 +64,7 @@ jobs:
 
       - name: Install toolchain
         run: curl https://sh.rustup.rs -sSf | sh -s -- --profile minimal --default-toolchain ${{ matrix.toolchain }}  -y
-      
-      # hyper-rustls >=0.27 uses aws-lc as default backend which requires cmake, C/C++ compiler and bindgen to build
-      #- name: Install build dependencies 
-        #run: |
-          #sudo apt-get update && sudo apt install -y build-essential cmake llvm-dev libclang-dev clang bindgen librust-bindgen-dev
-          #cargo install --force --locked bindgen-cli
-          #echo "/home/runner/.cargo/bin/" >> $GITHUB_PATH
-          #echo "AWS_LC_SYS_EXTERNAL_BINDGEN=1" >> $GITHUB_ENV
-          
+              
       - name: Get Rustc version
         id: get-rustc-version
         run: echo "version=$(rustc -V)" >> $GITHUB_OUTPUT
@@ -87,7 +79,15 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-${{ matrix.target }}-${{ steps.get-rustc-version.outputs.version }}-${{ hashFiles('Cargo.lock') }}
-      - name: Install cross
-        run: cargo install cross --git https://github.com/cross-rs/cross
+      
+      - name: Install the cross compiler targets
+        run: rustup target add ${{ matrix.target }}
+      
+      - name: Install cross compiler toolchain
+        run: sudo apt-get install -y gcc-arm-linux-gnueabihf
+      
       - name: Build
-        run: cross build --verbose --target ${{ matrix.target }} --no-default-features
+        run: cargo build --verbose --target ${{ matrix.target }} --no-default-features
+      
+      - name: Check binary
+        run: file target/${{ matrix.target }}/debug/librespot
